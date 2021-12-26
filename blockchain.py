@@ -15,6 +15,7 @@ def updatehash(*args):
 
 
 class Block():
+
     data = None
     hash = None
     nonce = 0
@@ -34,11 +35,46 @@ class Block():
 
 
 class Blockchain():
-    pass
+
+    # first 4 digits of the hash must be 0
+    difficulty = 3
+
+    def __init__(self, chain=[]):
+        self.chain = chain
+
+    def add(self, block):
+        self.chain.append(block)
+
+    def remove(self, block):
+        self.chain.remove(block)
+
+    def mining(self, block):
+
+        try:
+            block.prev_hash = self.chain[-1].hash()
+        except IndexError:
+            pass
+
+        while True:
+            if block.hash()[:self.difficulty] == "0" * self.difficulty:
+                self.add(block)
+                break
+            else:
+                block.nonce += 1
 
 
 def main():
-    pass
+    # block = Block("hello world!", 1)
+    # print(block)
+    blockchain = Blockchain()
+    database = ["hello", "what", "dsta", "test"]
+    num = 0
+    for data in database:
+        num += 1
+        blockchain.mining(Block(data, num))
+
+    for block in blockchain.chain:
+        print(block, "\n")
 
 
 if __name__ == '__main__':
