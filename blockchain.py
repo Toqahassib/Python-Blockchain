@@ -1,12 +1,12 @@
 from hashlib import sha256
-from datetime import datetime
+import time
+from Crypto.Signature import pkcs1_15
+from Crypto.PublicKey import RSA
 
-time = datetime.now()
 
+class Block(object):
 
-class Block():
-
-    def __init__(self, number=0, prev_hash="0" * 64, transaction=None, nonce=0, timestamp=time.strftime('%Y-%m-%d %H:%M:%S.%f')):
+    def __init__(self, number=0, prev_hash="0" * 64, transaction=None, nonce=0, timestamp=time.strftime('%Y-%m-%d %H:%M:%S')):
         # transaction data
         self.transaction = transaction
         self.number = number
@@ -18,28 +18,78 @@ class Block():
 
     # returns the hashed block
     def hash(self):
-        return new_hash(self.prev_hash, self.number, self.transaction, self.nonce, self.timestamp)
+        return new_hash(self.number, self.prev_hash, self.transaction, self.nonce, self.timestamp)
 
     # convert object to a readable format
     def __str__(self):
         return str("Block: {}\nHash: {}\nPrevious: {}\nTransaction: {}\nNonce: {}\nTime: {}\n".format(self.number, self.hash(), self.prev_hash, self.transaction, self.nonce, self.timestamp))
 
 
-class Blockchain():
+class Blockchain(object):
 
     # first 3 digits of the hash must be 0
     difficulty = 3
 
     def __init__(self):
         self.chain = []
+        self.pendingTrans = []
 
-    # adds a block to the chain
     def add(self, block):
         self.chain.append(block)
 
-    # removes a block from the chain
     def remove(self, block):
         self.chain.remove(block)
+
+    def addTrans(self, sender, receiver, amt, keyString, senderKey):
+        keyByte = keyString.encode("ASCII")
+        senderKeyByte = senderKey.encode('ASCII')
+
+        key = RSA.import_key(keyByte)
+        senderKey = RSA.import_key(senderKeyByte)
+
+        if not sender or not receiver or not amt:
+            print('transaction error 1')
+            return False
+
+        transaction = Transactions(sender, receiver, amt)
+
+        transaction.signTrans(key, senderKey)
+
+        if not transaction.validTrans():
+            print("transaction error 2")
+            return False
+        self.pendingTrans.append(transaction)
+        return len(self.chain) + 1
+
+    def minePendingTrans(self):
+        lenPT = len(self.pendingTrans)
+        for i in range(0, lenPT, 10):
+            end = i + 10
+            if i >= lenPT:
+                end = lenPT
+
+            transactionSlice = self.pendingTrans[i:end]
+
+            newBlock = Block(transactionSlice, time(), len(self.chain))
+
+            hashVal = self.chain[-1].hash()
+            newBlock.prev = hashVal
+            newBlock.mining(self.difficulty)
+            self.chain.append(newBlock)
+        print("MIning trans success")
+        return True
+
+    def generateKeys(self):
+        key = RSA.generate(2048)
+        private_key = key.export_key()
+        file_out = open("private.pem", "wb")
+        file_out.write(private_key)
+
+        public_key = key.publickey().export_key()
+        file_out = open("receiver.pem", "wb")
+        file_out.write(public_key)
+
+        return key.publickey().export_key().decode('ASCII')
 
     def mining(self, block):
 
@@ -64,6 +114,42 @@ class Blockchain():
                 return False
         return True
 
+
+class Transactions(object):
+    def __init__(self, sender, receiver, amount, timestamp=time.strftime('%Y-%m-%d %H:%M:%S')):
+        self.sender = sender
+        self.receiver = receiver
+        self.amount = amount
+        self.timestamp = timestamp
+        self.hashed = self.hash()
+
+    def signTrans(self, key, senderKey):
+        if self.hashed != self.hash():
+            print("transaction tampered error")
+            return False
+        if str(key.publickey().export_key()) != str(senderKey.publickey().export_key()):
+            print("transaction attempt to be signed from another walled")
+            return False
+
+        pkcs1_15.new(key)
+
+        self.signature = "made"
+        print("Made signature!")
+        return True
+
+    def validTrans(self):
+        if self.hashed != self.hash():
+            return False
+        if self.sender == self.receiver:
+            return False
+        if not self.signature or len(self.signature) == 0:
+            print("no sign")
+            return False
+        return True
+
+    # returns the hashed block
+    def hash(self):
+        return new_hash(self.sender, self.receiver, self.amount, self.timestamp)
 # function to hash the block
 
 
@@ -85,14 +171,14 @@ def main():
 
     num = 0
 
-    for data in database:
+    for transaction in database:
         num += 1
-        blockchain.mining(Block(data, num))
+        blockchain.mining(Block(num, transaction=transaction))
 
     for block in blockchain.chain:
         print(block, "\n")
 
-    print(blockchain.isValid())
+    print(blockchain.valid())
 
 
 if __name__ == '__main__':
