@@ -5,6 +5,8 @@ from sql import *
 from wtforms import Form, StringField, PasswordField, validators
 from functools import wraps
 
+# registration form
+
 
 class RegisterForm(Form):
     name = StringField('Full Name', [validators.length(min=1, max=50)])
@@ -15,7 +17,18 @@ class RegisterForm(Form):
     confirm = PasswordField('Confirm Password')
 
 
+# send money form
+class SendMoneyForm(Form):
+    username = StringField('Username', [validators.Length(min=4, max=25)])
+    amount = StringField('Amount', [validators.Length(min=1, max=50)])
+
+# buy form
+
+
+class BuyForm(Form):
+    amount = StringField('Amount', [validators.Length(min=1, max=50)])
 # initialize the app
+
 
 app = Flask(__name__)
 
@@ -31,7 +44,7 @@ app.config['MYSQL_CURSORCLASS'] = 'DictCursor'
 # initialize mysql
 mysql = MySQL(app)
 
-# function to ensure the user is logged in
+# wrap to ensure the user is logged in
 
 
 def login_verification(f):
@@ -113,6 +126,46 @@ def login():
     return render_template('login.html')
 
 
+@app.route("/buy", methods=['GET', 'POST'])
+# ensure the user is logged in
+@login_verification
+def buy():
+    form = BuyForm(request.form)
+    balance = get_balance(session.get('username'))
+
+    # if button is clicked
+    if request.method == 'POST':
+        try:
+            send_money("BANK",
+                       session.get('username'), form.amount.data)
+            flash("Purchase Successful!", 'success')
+
+        except Exception as e:
+            flash(str(e), 'danger')
+            return redirect(url_for('dashboard'))
+    return render_template('buy.html', balance=balance, form=form)
+
+
+@app.route("/transaction", methods=['GET', 'POST'])
+# ensure the user is logged in
+@login_verification
+def transaction():
+    form = SendMoneyForm(request.form)
+    balance = get_balance(session.get('username'))
+
+    # if button is clicked
+    if request.method == 'POST':
+        try:
+            send_money(session.get('username'),
+                       form.username.data, form.amount.data)
+            flash("Money Sent!", 'success')
+
+        except Exception as e:
+            flash(str(e), 'danger')
+            return redirect(url_for('transaction'))
+    return render_template('transaction.html', balance=balance, form=form)
+
+
 @app.route("/logout")
 # ensure the user is logged in
 @login_verification
@@ -137,8 +190,6 @@ def dashboard():
 
 @app.route("/")
 def index():
-    # a created table
-
     return render_template('index.html')
 
 
