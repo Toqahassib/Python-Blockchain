@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<!--ADAPTED FROM TEMPLATE at https://getbootstrap.com/docs/4.0/components/card/-->
+
+<html lang="en">
+
+  <head>
+
+    <title>Arcave - Register</title>
+
+  </head>
+
+  <body>
+
+    <div class="container">
+          <form method="POST" action="">
+                  <div class="form-label-group">
+                    <input type="text" id="inputUsername" name="name" class="form-control" placeholder="Full Name" required="required" autofocus="autofocus" value={{request.form.name}}>
+                    <label for="fullName">Full Name</label>
+                  </div>
+                  <div class="form-label-group">
+                    <input type="text" id="inputUsername" name="username" class="form-control" placeholder="Username" required="required" autofocus="autofocus" value={{request.form.username}}>
+                    <label for="inputUsername">Username</label>
+                  </div>
+                  <div class="form-label-group">
+                <input type="text" id="inputEmail" name="email" class="form-control" placeholder="Email" required="required" autofocus="autofocus" value={{request.form.email}}>
+                <label for="inputEmail">Email address</label>
+              </div>
+                  <div class="form-label-group">
+                    <input type="password" id="inputPassword" name="password" class="form-control" placeholder="Password" required="required" autofocus="autofocus" value={{request.form.password}}>
+                    <label for="inputPassword">Password</label>
+                  </div>
+                  <div class="form-label-group">
+                    <input type="password" id="confirmPassword" name="confirm" class="form-control" placeholder="Confirm Password" required="required" autofocus="autofocus" value={{request.form.confirm}}>
+                    <label for="confirmPassword">Confirm Password</label>
+                  </div>
+               
+            <button type="submit" class="btn btn-primary btn-block">Register</button>
+          </form>
+        </div>
+
+
+  </body>
+
+</html>
