@@ -3,6 +3,7 @@ from passlib.hash import sha256_crypt
 from flask_mysqldb import MySQL
 from sql import *
 from wtforms import Form, StringField, PasswordField, validators
+from functools import wraps
 
 
 class RegisterForm(Form):
@@ -30,10 +31,23 @@ app.config['MYSQL_CURSORCLASS'] = 'DictCursor'
 # initialize mysql
 mysql = MySQL(app)
 
+# function to ensure the user is logged in
+
+
+def login_verification(f):
+    @wraps(f)
+    def wrap(*args, **kwargs):
+        if 'logged_in' in session:
+            return f(*args, **kwargs)
+        else:
+            flash("Please login", 'danger')
+            return redirect(url_for('login'))
+    return wrap
+
 # function to login the user with session
 
 
-def loggedin(username):
+def loggin(username):
     # load users table from sql.py
     users = Table("users", "name", "email", "username", "password")
     user = users.getone("username", username)
@@ -60,7 +74,7 @@ def register():
         if isnewuser(username):
             password = sha256_crypt.encrypt(register_form.password.data)
             users.insert(name, email, username, password)
-            loggedin(username)
+            loggin(username)
             return redirect(url_for('dashboard'))
         else:
             flash('Username is taken, please try another one.', 'danger')
@@ -89,7 +103,7 @@ def login():
             return redirect(url_for('login'))
         else:
             if sha256_crypt.verify(pwd_entered, password):
-                loggedin(username)
+                loggin(username)
                 flash('You are now logged in', 'success')
                 return redirect(url_for('dashboard'))
             else:
@@ -100,8 +114,8 @@ def login():
 
 
 @app.route("/logout")
-# make sure the user is logged in
-@loggedin
+# ensure the user is logged in
+@login_verification
 def logout():
     session.clear()
     flash("Logout success", 'success')
@@ -111,6 +125,8 @@ def logout():
 
 
 @app.route("/dashboard")
+# ensure the user is logged in
+@login_verification
 def dashboard():
     # a created table
 
