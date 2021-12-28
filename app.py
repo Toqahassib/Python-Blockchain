@@ -4,7 +4,7 @@ from flask_mysqldb import MySQL
 from sql import *
 from wtforms import Form, StringField, PasswordField, validators
 from functools import wraps
-
+import time
 # registration form
 
 
@@ -143,7 +143,7 @@ def buy():
         except Exception as e:
             flash(str(e), 'danger')
             return redirect(url_for('dashboard'))
-    return render_template('buy.html', balance=balance, form=form)
+    return render_template('buy.html', balance=balance, form=form, page='buy')
 
 
 @app.route("/transaction", methods=['GET', 'POST'])
@@ -163,7 +163,7 @@ def transaction():
         except Exception as e:
             flash(str(e), 'danger')
             return redirect(url_for('transaction'))
-    return render_template('transaction.html', balance=balance, form=form)
+    return render_template('transaction.html', balance=balance, form=form, page='transaction')
 
 
 @app.route("/logout")
@@ -182,8 +182,11 @@ def logout():
 @login_verification
 def dashboard():
     # a created table
+    blockchain = get_blockchain().chain
+    ct = time.strftime('%Y-%m-%d %H:%M:%S')
+    balance = get_balance(session.get('username'))
 
-    return render_template('dashboard.html', session=session)
+    return render_template('dashboard.html', session=session, blockchain=blockchain, page='dashboard', ct=ct, balance=balance)
 
 # create homepage
 
