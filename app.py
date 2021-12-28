@@ -2,7 +2,7 @@ from flask import Flask, render_template, flash, redirect, url_for, session, req
 from passlib.hash import sha256_crypt
 from flask_mysqldb import MySQL
 from sql import *
-from wtforms import Form, StringField, DecimalField, IntegerField, TextAreaField, PasswordField, validators
+from wtforms import Form, StringField, PasswordField, validators
 
 
 class RegisterForm(Form):
@@ -30,8 +30,11 @@ app.config['MYSQL_CURSORCLASS'] = 'DictCursor'
 # initialize mysql
 mysql = MySQL(app)
 
+# function to login the user with session
 
-def login(username):
+
+def loggedin(username):
+    # load users table from sql.py
     users = Table("users", "name", "email", "username", "password")
     user = users.getone("username", username)
 
@@ -40,29 +43,69 @@ def login(username):
     session['name'] = user.get('name')
     session['email'] = user.get('email')
 
+
 # registration page
 
 
 @app.route("/register", methods=["GET", "POST"])
 def register():
-    form = RegisterForm(request.form)
+    register_form = RegisterForm(request.form)
     users = Table("users", "name", "email", "username", "password")
 
-    if request.method == 'POST' and form.validate():
-        username = form.username.data
-        email = form.email.data
-        name = form.name.data
+    if request.method == 'POST' and register_form.validate():
+        username = register_form.username.data
+        email = register_form.email.data
+        name = register_form.name.data
         # check if new user
         if isnewuser(username):
-            password = sha256_crypt.encrypt(form.password.data)
+            password = sha256_crypt.encrypt(register_form.password.data)
             users.insert(name, email, username, password)
-            login(username)
+            loggedin(username)
             return redirect(url_for('dashboard'))
         else:
-            flash('User already exists', 'danger')
+            flash('Username is taken, please try another one.', 'danger')
             return redirect(url_for('register'))
 
-    return render_template('register.html', form=form)
+    return render_template('register.html', form=register_form)
+
+# login page
+
+
+@app.route("/login", methods=['GET', 'POST'])
+def login():
+    # if login button is clicked
+    if request.method == 'POST':
+        # get the user's username and password from the form
+        username = request.form['username']
+        pwd_entered = request.form['password']
+
+        users = Table("users", "name", "email", "username", "password")
+
+        user = users.getone("username", username)
+        password = user.get('password')
+
+        if password is None:
+            flash("Invalid Password or username", 'danger')
+            return redirect(url_for('login'))
+        else:
+            if sha256_crypt.verify(pwd_entered, password):
+                loggedin(username)
+                flash('You are now logged in', 'success')
+                return redirect(url_for('dashboard'))
+            else:
+                flash("Invalid password", 'danger')
+                return redirect(url_for('login'))
+
+    return render_template('login.html')
+
+
+@app.route("/logout")
+# make sure the user is logged in
+@loggedin
+def logout():
+    session.clear()
+    flash("Logout success", 'success')
+    return redirect(url_for('login'))
 
 # create a dashboard page
 
