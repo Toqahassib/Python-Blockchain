@@ -3,36 +3,18 @@ from datetime import datetime
 
 time = datetime.now()
 
-# function to hash the block
 
+class Transaction():
 
-def new_hash(*args):
-    text = ""
-    hash = sha256()
-    for arg in args:
-        text += str(arg)
-
-    hash.update(text.encode('utf-8'))
-
-    return hash.hexdigest()
-
-
-class Block():
-
-    # transaction data
-    data = None
-    # hash of block
-    hash = None
-    # arbirtary number for proof of work
-    nonce = 0
-    # hash of previous block
-    prev_hash = "0" * 64
-
-    timestamp = time.strftime('%Y-%m-%d %H:%M:%S.%f')
-
-    def __init__(self, data, number=0):
+    def __init__(self, number=0, prev_hash="0" * 64, data=None, nonce=0, timestamp=time.strftime('%Y-%m-%d %H:%M:%S.%f')):
+        # transaction data
         self.data = data
         self.number = number
+        # arbirtary number for proof of work
+        self.nonce = nonce
+        # hash of previous block
+        self.prev_hash = prev_hash
+        self.timestamp = timestamp
 
     # returns the hashed block
     def hash(self):
@@ -63,27 +45,39 @@ class Blockchain():
     def mining(self, block):
 
         # if the previous hash is equal to the chain's last hashed block
-        try:
-            block.prev_hash = self.chain[-1].hash()
-        except IndexError:
-            pass
-
-        # loop until difficulty requirement is met
-        while True:
-            if block.hash()[:self.difficulty] == "0" * self.difficulty:
-                self.add(block)
-                break
-            else:
-                block.nonce += 1
+        if block.prev_hash == self.chain[-1].hash():
+            # loop until difficulty requirement is met
+            while True:
+                if block.hash()[:self.difficulty] == "0" * self.difficulty:
+                    self.add(block)
+                    break
+                else:
+                    block.nonce += 1
+        else:
+            raise IndexError
 
     # validates that prev hash and hash are equal and difficulty is implemented
+
     def valid(self):
         for i in range(1, len(self.chain)):
-            prev = self.chain[i].prev_hash
-            curr = self.chain[i-1].hash()
-            if prev != curr or curr[:self.difficulty] != "0"*self.difficulty:
+            previous = self.chain[i].prev_hash
+            current = self.chain[i-1].hash()
+            if previous != current or current[:self.difficulty] != "0"*self.difficulty:
                 return False
         return True
+
+# function to hash the block
+
+
+def new_hash(*args):
+    text = ""
+    hash = sha256()
+    for i in args:
+        text += str(i)
+
+    hash.update(text.encode('utf-8'))
+
+    return hash.hexdigest()
 
 
 def main():
@@ -93,7 +87,7 @@ def main():
     num = 0
     for data in database:
         num += 1
-        blockchain.mining(Block(data, num))
+        blockchain.mining(Transaction(data, num))
 
     for block in blockchain.chain:
         print(block, "\n")
