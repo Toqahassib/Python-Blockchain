@@ -2,9 +2,11 @@ from hashlib import sha256
 import time
 from Crypto.Signature import pkcs1_15
 from Crypto.PublicKey import RSA
+from urllib.parse import urlparse
+import requests
 
 
-class Block(object):
+class Block():
 
     def __init__(self, number=0, prev_hash="0" * 64, transaction=None, nonce=0, timestamp=time.strftime('%Y-%m-%d %H:%M:%S')):
         # transaction data
@@ -25,7 +27,7 @@ class Block(object):
         return str("Block: {}\nHash: {}\nPrevious: {}\nTransaction: {}\nNonce: {}\nTime: {}\n".format(self.number, self.hash(), self.prev_hash, self.transaction, self.nonce, self.timestamp))
 
 
-class Blockchain(object):
+class Blockchain():
 
     # first 3 digits of the hash must be 0
     difficulty = 3
@@ -33,6 +35,36 @@ class Blockchain(object):
     def __init__(self):
         self.chain = []
         self.pendingTrans = []
+        self.nodes = set()
+
+    # p2p
+    def register_node(self, address):
+        parsedUrl = urlparse(address)
+        self.nodes.add(parsedUrl.netloc)
+
+    # def resolveConflicts(self):
+    #     neighbors = self.nodes
+    #     newChain = None
+
+    #     maxLength = len(self.chain)
+
+    #     for node in neighbors:
+    #         response = requests.get(f'http://{node}/transaction')
+
+    #         if response.status_code == 200:
+    #             length = response.json()['length']
+    #             chain = response.json()['chain']
+
+    #             if length > maxLength and self.isValidChain():
+    #                 maxLength = length
+    #                 newChain = chain
+
+    #     if newChain:
+    #         self.chain = self.chainJSONdecode(newChain)
+    #         print(self.chain)
+    #         return True
+
+    #     return False
 
     def add(self, block):
         self.chain.append(block)
@@ -115,13 +147,23 @@ class Blockchain(object):
         return True
 
 
-class Transactions(object):
-    def __init__(self, sender, receiver, amount, timestamp=time.strftime('%Y-%m-%d %H:%M:%S')):
+class Transactions():
+    def __init__(self, sender="", receiver="", amount=int, timestamp=time.strftime('%Y-%m-%d %H:%M:%S')):
         self.sender = sender
         self.receiver = receiver
         self.amount = amount
         self.timestamp = timestamp
         self.hashed = self.hash()
+
+    def validTrans(self):
+        if self.hashed != self.hash():
+            return False
+        if self.sender == self.receiver:
+            return False
+        if not self.signature or len(self.signature) == 0:
+            print("no sign")
+            return False
+        return True
 
     def signTrans(self, key, senderKey):
         if self.hashed != self.hash():
@@ -136,20 +178,12 @@ class Transactions(object):
         self.signature = "made"
         print("Made signature!")
         return True
-
-    def validTrans(self):
-        if self.hashed != self.hash():
-            return False
-        if self.sender == self.receiver:
-            return False
-        if not self.signature or len(self.signature) == 0:
-            print("no sign")
-            return False
-        return True
-
     # returns the hashed block
+
     def hash(self):
         return new_hash(self.sender, self.receiver, self.amount, self.timestamp)
+
+
 # function to hash the block
 
 
