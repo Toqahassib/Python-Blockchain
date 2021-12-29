@@ -4,7 +4,6 @@ from passlib.hash import sha256_crypt
 from flask_mysqldb import MySQL
 from functools import wraps
 from sql import *
-from blockchain import Blockchain
 import time
 
 # registration forms
@@ -20,8 +19,6 @@ class RegisterForm(Form):
 
 
 # send money form
-
-
 class SendMoneyForm(Form):
     username = StringField('Username', [validators.Length(min=4, max=25)])
     amount = StringField('Amount', [validators.Length(min=1, max=50)])
@@ -50,7 +47,6 @@ app.config['MYSQL_CURSORCLASS'] = 'DictCursor'
 # initialize mysql
 mysql = MySQL(app)
 
-blockchain = Blockchain()
 # wrap to ensure the user is logged in
 
 
@@ -157,7 +153,6 @@ def buy():
 # ensure the user is logged in
 @login_verification
 def transaction():
-    # blockchain.resolveConflicts()
     form = SendMoneyForm(request.form)
     balance = get_balance(session.get('username'))
 
@@ -196,7 +191,6 @@ def dashboard():
 
     return render_template('dashboard.html', session=session, blockchain=blockchain, page='dashboard', ct=ct, balance=balance)
 
-
 # create homepage
 
 
@@ -205,61 +199,6 @@ def index():
     return render_template('index.html')
 
 
-@app.route('/chain', methods=['GET'])
-def full_chain():
-
-    response = {
-        'chain': blockchain.chainJSONencode(),
-        'length': len(blockchain.chain),
-    }
-    return response, 200
-
-# blockchainObj DECENTRALIZED NODES
-
-
-@app.route('/nodes/register', methods=['POST'])
-def register_nodes():
-
-    values = request.get_json()
-
-    nodes = values.get('nodes')
-    if nodes is None:
-        return "Error: Please supply a valid list of nodes", 400
-
-    for node in nodes:
-
-        blockchain.register_node(node)
-
-    response = {
-        'message': 'New nodes have been added',
-        'total_nodes': list(blockchain.nodes),
-    }
-    return response, 201
-
-
-@app.route('/nodes/resolve', methods=['GET'])
-def consensus():
-
-    replaced = blockchain.resolveConflicts()
-
-    if replaced:
-        response = {
-            'message': 'Our chain was replaced',
-            'new_chain': blockchain
-        }
-    else:
-        response = {
-            'message': 'Our chain is authoritative',
-            'chain': blockchain
-        }
-
-    return response, 200
-
-
 if __name__ == '__main__':
-    node = '127.0.0.1'
-
-    blockchain.register_node(node)
-
     app.secret_key = 'secret123'
-    app.run(host=node, port=5001, debug=True)
+    app.run(debug=True)

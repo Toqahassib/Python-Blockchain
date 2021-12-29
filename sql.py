@@ -1,5 +1,4 @@
-from os import sync
-from app import mysql, session
+from app import mysql
 from blockchain import Block, Blockchain
 
 # custom exceptions for transaction errors
@@ -125,15 +124,15 @@ def send_money(sender, reciever, amount):
     except ValueError:
         raise InvalidTransactionException("Invalid Transaction.")
 
-    # verify that the user has enough money to send (exception if it is the BANK)
+    # ensure that the sender has enough money to send (except BANK)
     if amount > get_balance(sender) and sender != "BANK":
         raise InsufficientFundsException("Insufficient Funds.")
 
-    # verify that the user is not sending money to themselves or amount is less than or 0
+    # ensure that the sender is not sending money to themselves or amount is less than 0
     elif sender == reciever or amount <= 0.00:
         raise InvalidTransactionException("Invalid Transaction.")
 
-    # verify that the recipient exists
+    # ensure that the recipient is valid
     elif isnewuser(reciever):
         raise InvalidTransactionException("User Does Not Exist.")
 
@@ -160,7 +159,7 @@ def get_balance(username):
             balance += float(data[2])
     return balance
 
-# get the blockchain from mysql and convert to Blockchain object
+# get the blockchain from mysql and change it to Blockchain object
 
 
 def get_blockchain():
@@ -184,9 +183,3 @@ def sync_blockchain(blockchain):
     for block in blockchain.chain:
         blockchain_sql.insert(str(block.number), block.hash(
         ), block.prev_hash, block.transaction, block.nonce, block.timestamp)
-
-
-def test():
-    blockchain_sql = Table("blockchain", "number", "hash",
-                           "previous", "transaction", "nonce", "timestamp")
-    blockchain_sql.deleteall()
