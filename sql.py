@@ -1,5 +1,6 @@
 from app import mysql
-from blockchain import Block, Blockchain
+
+from blockchain import Block, Blockchain, Transactions
 
 # custom exceptions for transaction errors
 
@@ -138,10 +139,18 @@ def send_money(sender, reciever, amount):
 
     # update the blockchain and sync to mysql
     blockchain = get_blockchain()
+    key = blockchain.generateKeys()
+
     number = len(blockchain.chain) + 1
     transaction = "%s-->%s-->%s" % (sender, reciever, amount)
+
+    blockchain.addTrans(sender, reciever, amount, key, key)
+
+    # ensure that transaction is signed
+
     blockchain.mining(Block(number, transaction=transaction))
     sync_blockchain(blockchain)
+
 
 # get the balance of a user
 
