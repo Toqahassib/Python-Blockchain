@@ -1,6 +1,8 @@
+{% extends 'layout.html' %}
 
+{% block body %}
 {% include 'includes/_messages.html' %}
-<p>Your current balance is {{ balance }} SHK</p>
+<p>Your current balance is {{ balance }} ACV</p>
 {% from "includes/_formhelpers.html" import render_field %}
 <form action="" method="POST">
   <div class="form-group">
@@ -10,3 +12,4 @@
   </div>
   <button type="submit" class="btn btn-primary btn-block">Buy Now</button>
 </form>
+{% endblock %}
