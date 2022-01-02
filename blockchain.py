@@ -21,7 +21,7 @@ class Block():
     def hash(self):
         return new_hash(self.number, self.prev_hash, self.transaction, self.nonce, self.timestamp)
 
-    # convert object to a readable format
+    # convert object to a string to make it readable
     def __str__(self):
         return str("Block: {}\nHash: {}\nPrevious: {}\nTransaction: {}\nNonce: {}\nTime: {}\n".format(self.number, self.hash(), self.prev_hash, self.transaction, self.nonce, self.timestamp))
 
@@ -39,21 +39,27 @@ class Blockchain():
     # peer to peer function
     def register_node(self, address):
         parsedUrl = urlparse(address)
+        # registers nodes
         self.nodes.add(parsedUrl.netloc)
 
+    # adds blocks to the chain
     def add(self, block):
         self.chain.append(block)
 
+    # removes blocks from the chain
     def remove(self, block):
         self.chain.remove(block)
 
+    # mines blocks
     def mining(self, block):
 
+        # the previous hash must be equal to the previous block's hash
         try:
             block.prev_hash = self.chain[-1].hash()
         except IndexError:
             pass
 
+        # loop to ensure the difficulty of the hash is met
         while True:
             if block.hash()[:self.difficulty] == "0" * self.difficulty:
                 self.add(block)
@@ -61,52 +67,43 @@ class Blockchain():
             else:
                 block.nonce += 1
 
+    # adds transactions to the pending transaction list
     def addTrans(self, sender, receiver, amt, keyString, senderKey):
+        # encode the keys
         keyByte = keyString.encode("ASCII")
         senderKeyByte = senderKey.encode('ASCII')
 
+        # encrypt the keys
         key = RSA.import_key(keyByte)
         senderKey = RSA.import_key(senderKeyByte)
 
         if not sender or not receiver or not amt:
-            print('transaction error 1')
+            # print('transaction error 1')
             return False
 
         transaction = Transactions(sender, receiver, amt)
 
+        # sign the transaction using the keys
         transaction.signTrans(key, senderKey)
 
         if not transaction.validTrans():
-            print("transaction error 2")
+            # print("transaction error 2")
             return False
+
+        # add the transaction to the prending transaction list
         self.pendingTrans.append(transaction)
         return len(self.chain) + 1
 
-    def minePendingTrans(self):
-        lenPT = len(self.pendingTrans)
-        for i in range(0, lenPT, 10):
-            end = i + 10
-            if i >= lenPT:
-                end = lenPT
-
-            transactionSlice = self.pendingTrans[i:end]
-
-            newBlock = Block(transactionSlice, time(), len(self.chain))
-
-            hashVal = self.chain[-1].hash()
-            newBlock.prev = hashVal
-            newBlock.mining(self.difficulty)
-            self.chain.append(newBlock)
-        print("MIning trans success")
-        return True
-
+    # generate keys
     def generateKeys(self):
         key = RSA.generate(2048)
+        # save the private key in a file
         private_key = key.export_key()
         file_out = open("private.pem", "wb")
         file_out.write(private_key)
 
         public_key = key.publickey().export_key()
+        # save the public key in a file
         file_out = open("receiver.pem", "wb")
         file_out.write(public_key)
 
@@ -131,30 +128,30 @@ class Transactions():
         self.timestamp = timestamp
         self.hashed = self.hash()
 
+    # validates transactions
     def validTrans(self):
         if self.hashed != self.hash():
             return False
         if self.sender == self.receiver:
             return False
         if not self.signature or len(self.signature) == 0:
-            print("no sign")
             return False
         return True
 
+    # signs the transaction
     def signTrans(self, key, senderKey):
+
         if self.hashed != self.hash():
-            print("transaction tampered error")
             return False
         if str(key.publickey().export_key()) != str(senderKey.publickey().export_key()):
-            print("transaction attempt to be signed from another walled")
             return False
 
         pkcs1_15.new(key)
 
         self.signature = "made"
-        print("Made signature!")
         return True
-    # returns the hashed block
+
+    # returns the hashed transaction
 
     def hash(self):
         return new_hash(self.sender, self.receiver, self.amount, self.timestamp)

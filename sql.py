@@ -146,6 +146,9 @@ def send_money(sender, reciever, amount):
 
     blockchain.addTrans(sender, reciever, amount, key, key)
 
+    if not blockchain.addTrans:
+        raise InvalidTransactionException("Invalid Transaction.")
+
     # ensure that transaction is signed
 
     blockchain.mining(Block(number, transaction=transaction))

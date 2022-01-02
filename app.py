@@ -6,7 +6,7 @@ from functools import wraps
 from blockchain import Blockchain
 import time
 from sql import *
-
+import threading
 
 # registration forms
 
@@ -86,15 +86,18 @@ def loggin(username):
 
 @app.route("/register", methods=["GET", "POST"])
 def register():
+    # load registrations form and users table
     register_form = RegisterForm(request.form)
     users = Table("users", "name", "email", "username", "password")
 
+    # if form is completed get username, email, and name
     if request.method == 'POST' and register_form.validate():
         username = register_form.username.data
         email = register_form.email.data
         name = register_form.name.data
         # check if new user
         if isnewuser(username):
+            # register the user in the table
             password = sha256_crypt.encrypt(register_form.password.data)
             users.insert(name, email, username, password)
             loggin(username)
@@ -121,6 +124,7 @@ def login():
         user = users.getone("username", username)
         password = user.get('password')
 
+        # check the password
         if password is None:
             flash("Invalid Password or username", 'danger')
             return redirect(url_for('login'))
@@ -140,12 +144,14 @@ def login():
 # ensure the user is logged in
 @login_verification
 def buy():
+    # load the buying form and get the user's balance
     form = BuyForm(request.form)
     balance = get_balance(session.get('username'))
 
     # if button is clicked
     if request.method == 'POST':
         try:
+            # send the money purchased
             send_money("BANK",
                        session.get('username'), form.amount.data)
             flash("Purchase Successful!", 'success')
@@ -160,13 +166,13 @@ def buy():
 # ensure the user is logged in
 @login_verification
 def transaction():
-    # blockchain.resolveConflicts()
     form = SendMoneyForm(request.form)
     balance = get_balance(session.get('username'))
 
     # if button is clicked
     if request.method == 'POST':
         try:
+            # send ttransaction
             send_money(session.get('username'),
                        form.username.data, form.amount.data)
             flash("Money Sent!", 'success')
@@ -181,6 +187,7 @@ def transaction():
 # ensure the user is logged in
 @login_verification
 def logout():
+    # clear the session and logout
     session.clear()
     flash("Logout success", 'success')
     return redirect(url_for('login'))
@@ -192,7 +199,7 @@ def logout():
 # ensure the user is logged in
 @login_verification
 def dashboard():
-    # a created table
+    # get the blockchain, current time, and balance
     blockchain = get_blockchain().chain
     ct = time.strftime('%Y-%m-%d %H:%M:%S')
     balance = get_balance(session.get('username'))
@@ -208,15 +215,6 @@ def index():
     return render_template('index.html')
 
 
-@app.route('/chain', methods=['GET'])
-def full_chain():
-
-    response = {
-        'chain': blockchain.chainJSONencode(),
-        'length': len(blockchain.chain),
-    }
-    return response, 200
-
 # blockchain DECENTRALIZED NODES
 
 
@@ -230,7 +228,7 @@ def register_nodes():
         return "Error: Please supply a valid list of nodes", 400
 
     for node in nodes:
-
+        # register the nodes
         blockchain.register_node(node)
 
     response = {
@@ -246,4 +244,5 @@ if __name__ == '__main__':
     blockchain.register_node(node)
 
     app.secret_key = 'secret123'
-    app.run(host=node, port=5001, debug=True)
+
+    app.run(host=node, port=5001, debug=True, threaded=True)
