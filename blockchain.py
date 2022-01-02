@@ -46,10 +46,6 @@ class Blockchain():
     def add(self, block):
         self.chain.append(block)
 
-    # removes blocks from the chain
-    def remove(self, block):
-        self.chain.remove(block)
-
     # mines blocks
     def mining(self, block):
 
