@@ -12,6 +12,7 @@ REPOSITORY’S ORGANIZATION
 PRE-REQUISITES
 
 Programming Language: Python 3.9.7
+
 Modules: flask, hashlib, Crypto, time, urllib, wtforms, passlib, flask_mysqldb, functools.
 
 HOW TO USE THE CODE
